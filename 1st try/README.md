@@ -113,7 +113,9 @@ It combines effective variable selection with valid post-selection inference, br
 ## Authors
 
 **Shokhrukhkhon Nishonkulov** 
+
 **Olim Umurzokov**  
+
 **Damir Abdulazizov** 
 M.Sc. Economics, University of Bonn  
 Research Module in Econometrics and Statistics (2025)
