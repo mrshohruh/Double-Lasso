@@ -19,7 +19,7 @@ def run_simulation(*,
                    seed: int = 123,
                    dgp: DGPProtocol,
                    estimator: EstimatorProtocol) -> pd.DataFrame:
-    """Monte Carlo loop; identical logic to the single-file version."""
+    
     rng = np.random.default_rng(seed)
     rows = []
     for _ in range(R):
