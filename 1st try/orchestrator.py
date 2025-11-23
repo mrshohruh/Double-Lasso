@@ -14,6 +14,7 @@ def sweep_designs(*,
                   ci_level: float = 0.95,
                   c: float = 1.1,
                   seed: int = 123,
+                  use_cv: bool = False,
                   dgp: DGPProtocol = None,
                   estimator: EstimatorProtocol = None,
                   make_plot: bool = True,
@@ -26,7 +27,7 @@ def sweep_designs(*,
     for val in values:
         kwargs = dict(base)
         kwargs[param] = val
-        df = run_simulation(R=R, ci_level=ci_level, c=c, seed=seed, dgp=dgp, estimator=estimator, **kwargs)
+        df = run_simulation(R=R, ci_level=ci_level, c=c, seed=seed, use_cv=use_cv, dgp=dgp, estimator=estimator, **kwargs)
         beta1 = kwargs.get("beta1", 2.0)
         coverage = df["covered"].mean()
         avg_len = df["ci_length"].mean()

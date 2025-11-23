@@ -24,6 +24,8 @@ def main():
     runp.add_argument("--ci", type=float, default=0.95)
     runp.add_argument("--seed", type=int, default=123)
     runp.add_argument("--out", type=str, default="results.csv")
+    runp.add_argument("--use_cv", action="store_true",
+                      help="Use cross-validated alpha instead of plugin alpha.")
 
     # sweep
     swp = sub.add_parser("sweep", help="Sweep over one design parameter.")
@@ -39,17 +41,21 @@ def main():
     swp.add_argument("--ci", type=float, default=0.95)
     swp.add_argument("--seed", type=int, default=123)
     swp.add_argument("--out", type=str, default="sweep_results.csv")
+    swp.add_argument("--use_cv", action="store_true",
+                     help="Use cross-validated alpha instead of plugin alpha.")
 
     # scenarios
     scp = sub.add_parser("scenarios", help="Run predefined scenarios.")
     scp.add_argument("--outdir", type=str, default="results")
+    scp.add_argument("--use_cv", action="store_true",
+                     help="Use cross-validated alpha instead of plugin alpha.")
 
     args = parser.parse_args()
 
     if args.cmd == "run":
         df = run_simulation(
             R=args.R, n=args.n, p=args.p, s=args.s, beta1=args.beta1, rho=args.rho,
-            ci_level=args.ci, c=args.c, seed=args.seed,
+            ci_level=args.ci, c=args.c, seed=args.seed, use_cv=args.use_cv,
             dgp=simulate_dgp, estimator=double_lasso_ci
         )
         df.to_csv(args.out, index=False)
@@ -60,7 +66,7 @@ def main():
         base = dict(n=args.n, p=args.p, s=args.s, beta1=args.beta1, rho=args.rho)
         sweep = sweep_designs(
             param=args.param, values=values, R=args.R,
-            ci_level=args.ci, c=args.c, seed=args.seed,
+            ci_level=args.ci, c=args.c, seed=args.seed, use_cv=args.use_cv,
             dgp=simulate_dgp, estimator=double_lasso_ci,
             make_plot=True, save_csv=args.out
         )
@@ -71,10 +77,22 @@ def main():
         import os
         os.makedirs(args.outdir, exist_ok=True)
         for sc in get_scenarios():
+            scenario_kwargs = dict(
+                R=sc.R,
+                n=sc.n,
+                p=sc.p,
+                s=sc.s,
+                beta1=sc.beta1,
+                rho=sc.rho,
+                ci_level=sc.ci_level,
+                c=sc.c,
+                seed=sc.seed,
+                use_cv=args.use_cv,
+            )
             df = run_simulation(
-                R=sc.R, n=sc.n, p=sc.p, s=sc.s, beta1=sc.beta1, rho=sc.rho,
-                ci_level=sc.ci_level, c=sc.c, seed=sc.seed,
-                dgp=simulate_dgp, estimator=double_lasso_ci
+                dgp=simulate_dgp,
+                estimator=double_lasso_ci,
+                **scenario_kwargs,
             )
             out = f"{args.outdir}/{sc.name}.csv"
             df.to_csv(out, index=False)

@@ -124,3 +124,57 @@ It combines effective variable selection with valid post-selection inference, br
 #### **Damir Abdulazizov** 
 M.Sc. Economics, University of Bonn  
 Research Module in Econometrics and Statistics (2025)
+
+## Summary of Simulation Development and Changes
+
+This section documents all the updates, extensions, and experiments we implemented in the simulation framework throughout the development process. The goal was to evaluate the performance of the Double LASSO estimator under a wide range of high-dimensional designs and tuning strategies.
+
+### 1. Increased Monte Carlo Repetitions (R = 100 → R = 500)
+
+We increased Monte Carlo replications across all designs by updating defaults in runner.py, orchestrator.py, and scenarios.py. Every scenario now consistently uses R = 500. This reduces Monte Carlo noise and yields more stable estimates of coverage, bias, and CI length.
+
+### 2. Added New Scenarios with Lower Dimensionality (p = 60)
+
+We created new scenario variants with p = 60 for multiple values of n. These scenarios reduce dimensionality and allow us to study Double LASSO performance under easier high-dimensional settings where n >> s log p is better satisfied.
+
+### 3. Added Lower-Sparsity Variants (s = 3)
+
+We extended every original scenario by adding versions with s = 3. This makes the DGP more sparse, which theory predicts should improve LASSO selection accuracy and inference performance.
+
+### 4. Added New Correlation Structures (ρ = 0 and ρ = 0.1)
+
+We introduced new correlation levels for p = 60, s = 3 scenarios. These variants test how Double LASSO behaves under weaker multicollinearity conditions.
+
+### 5. Ensured Scenario Parameters Are Fully Respected
+
+We updated main.py and internal wiring so that all parameters from SimulationScenario objects are correctly passed into the simulation engine. This guarantees that changes to n, p, s, ρ, and other parameters in scenarios.py directly affect the simulations.
+
+### 6. Added compare_scenarios.py
+
+We implemented a script that summarizes all raw scenario outputs into one table (coverage, CI length, bias, RMSE, k_y, k_d). This file enables easy comparison across all scenario designs.
+
+### 7. Tested and Reverted Reduced Noise in the DGP
+
+We experimented with reducing noise (scale = 0.5) in u and v, but reverted this change after confirming it did not resolve the main issue (bias due to underselection). This test confirmed that noise is not the dominant factor in coverage failures.
+
+### 8. Added Scenarios with Lower Penalty Constant (c = 0.6)
+
+We added parallel versions of all scenarios with c = 0.6, allowing us to test the effect of weaker LASSO penalties on selection and inference. These results showed mixed improvements depending on scenario difficulty.
+
+### 9. Implemented Cross-Validated LASSO Penalties (CV-Based α)
+
+We added a cv_alpha() function, integrated CV into double_lasso_ci, and enabled CV-based α for both nuisance regressions. This provides a data-driven penalty choice widely used in practice.
+
+### 10. Added --use_cv Flag in main.py
+
+We updated the CLI to support a new --use_cv flag, enabling cross-validated estimation directly from the command line in all modes (run, sweep, scenarios).
+
+### 11. Generated CV-Based Scenario Outputs into results_cv/
+
+We executed all scenarios with CV-based α and saved them to a new results_cv/ directory, creating a clean separation between plugin-penalty and CV-penalty results.
+
+### 12. Added compare_plugin_vs_cv.py
+
+We implemented a script to compare plugin vs CV results side by side. It computes differences in coverage, bias, and CI length and writes a combined summary table to results/plugin_vs_cv_summary.csv.
+
+This expanded pipeline now supports a comprehensive evaluation of Double LASSO under diverse high-dimensional designs and tuning strategies.

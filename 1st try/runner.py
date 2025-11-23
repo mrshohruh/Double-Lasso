@@ -17,6 +17,7 @@ def run_simulation(*,
                    ci_level: float = 0.95,
                    c: float = 1.1,
                    seed: int = 123,
+                   use_cv: bool = False,
                    dgp: DGPProtocol,
                    estimator: EstimatorProtocol) -> pd.DataFrame:
     
@@ -25,7 +26,7 @@ def run_simulation(*,
     for _ in range(R):
         Y, D, X = dgp(n=n, p=p, s=s, beta1=beta1, rho=rho, seed=rng.integers(0, 1_000_000))
         alpha = plugin_alpha(n, p, c=c)
-        est = estimator(Y, D, X, alpha=alpha, ci_level=ci_level)
+        est = estimator(Y, D, X, alpha=alpha, ci_level=ci_level, use_cv=use_cv)
         covered = int((est["ci_low"] <= beta1) and (beta1 <= est["ci_high"]))
         rows.append({
             "beta1_hat": est["beta1_hat"],

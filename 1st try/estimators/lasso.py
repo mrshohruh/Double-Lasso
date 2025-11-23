@@ -1,12 +1,21 @@
 
 import numpy as np
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, LassoCV
 import statsmodels.api as sm
 from scipy.stats import norm
 
 def plugin_alpha(n, p, c=1.1):
     """Plug-in style L1 penalty for sklearn's Lasso ((1/2n)||y-Xb||^2 + alpha||b||_1)."""
     return c * np.sqrt(2 * np.log(p) / n)
+
+def cv_alpha(X, y):
+    """
+    Compute alpha via 10-fold cross-validation.
+    Returns alpha_ selected by LassoCV.
+    """
+    model = LassoCV(cv=10, fit_intercept=True, n_jobs=-1)
+    model.fit(X, y)
+    return model.alpha_
 
 def lasso_residuals(X, y, alpha):
     """Fit Lasso(y ~ X) and return residuals y - X b_hat - intercept."""
@@ -15,7 +24,7 @@ def lasso_residuals(X, y, alpha):
     y_hat = model.predict(X)
     return y - y_hat, model
 
-def double_lasso_ci(Y, D, X, alpha=None, ci_level=0.95):
+def double_lasso_ci(Y, D, X, alpha=None, ci_level=0.95, use_cv=False):
     """
     Double LASSO:
       1) Lasso Y ~ X -> residuals Y~.
@@ -23,13 +32,17 @@ def double_lasso_ci(Y, D, X, alpha=None, ci_level=0.95):
       3) OLS Y~ on D~, HC3 robust SE -> CI for beta1.
     """
     n, p = X.shape
-    if alpha is None:
-        alpha = plugin_alpha(n, p)
+    if use_cv:
+        alpha_y = cv_alpha(X, Y)
+        alpha_d = cv_alpha(X, D)
+    else:
+        alpha_y = alpha_d = alpha if alpha is not None else plugin_alpha(n, p)
+    alpha_used = alpha_y
 
     # Step 1: partial out X from Y
-    Y_resid, model_y = lasso_residuals(X, Y, alpha)
+    Y_resid, model_y = lasso_residuals(X, Y, alpha_y)
     # Step 2: partial out X from D
-    D_resid, model_d = lasso_residuals(X, D, alpha)
+    D_resid, model_d = lasso_residuals(X, D, alpha_d)
 
     # Step 3: OLS on residuals with HC3
     X_ols = sm.add_constant(D_resid)
@@ -48,5 +61,5 @@ def double_lasso_ci(Y, D, X, alpha=None, ci_level=0.95):
         "ci_high": float(ci_high),
         "k_y": int(np.sum(model_y.coef_ != 0)),
         "k_d": int(np.sum(model_d.coef_ != 0)),
-        "alpha": float(alpha),
+        "alpha": float(alpha_used),
     }
