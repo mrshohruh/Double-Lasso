@@ -50,9 +50,9 @@ python3 main.py run --R 200 --n 200 --p 100 --s 5 --beta1 2.0 --rho 0.2 --out re
 python3 main.py sweep --param n --values 80,120,200,320 --R 100 --out sweep_results.csv
 ```
 
-### Sweep with p=60 across n ∈ {120, 200, 300}
+### Sweep with p=60 across n ∈ {120, 200, 320}
 ```bash
-python main.py sweep --param n --values 120,200,300 --p 60 --out p60_sweep.csv
+python main.py sweep --param n --values 120,200,320 --p 60 --out p60_sweep.csv
 ```
 
 ### Run all predefined scenarios
