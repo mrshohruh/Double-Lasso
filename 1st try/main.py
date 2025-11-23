@@ -14,7 +14,7 @@ def main():
 
     # simple run
     runp = sub.add_parser("run", help="Run a single design R times.")
-    runp.add_argument("--R", type=int, default=100)
+    runp.add_argument("--R", type=int, default=500, help="Number of Monte Carlo replications")
     runp.add_argument("--n", type=int, default=200)
     runp.add_argument("--p", type=int, default=100)
     runp.add_argument("--s", type=int, default=5)
@@ -29,7 +29,7 @@ def main():
     swp = sub.add_parser("sweep", help="Sweep over one design parameter.")
     swp.add_argument("--param", type=str, choices=["n", "p", "s", "rho"], default="n")
     swp.add_argument("--values", type=str, default="80,120,200,320")
-    swp.add_argument("--R", type=int, default=100)
+    swp.add_argument("--R", type=int, default=500, help="Number of Monte Carlo replications")
     swp.add_argument("--n", type=int, default=200)
     swp.add_argument("--p", type=int, default=100)
     swp.add_argument("--s", type=int, default=5)

@@ -8,7 +8,7 @@ from protocols import DGPProtocol, EstimatorProtocol
 from estimators.lasso import plugin_alpha
 
 def run_simulation(*,
-                   R: int = 100,
+                   R: int = 500,
                    n: int = 200,
                    p: int = 100,
                    s: int = 5,

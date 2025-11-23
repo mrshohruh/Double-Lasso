@@ -2,6 +2,14 @@
 import numpy as np
 
 def simulate_dgp(n=200, p=100, s=5, beta1=2.0, rho=0.0, seed=None):
+
+    # n : number of samples
+    # p : number of covariates
+    # s : number of relevant covariates
+    # beta1 : treatment effect
+    # rho : correlation between covariates
+    # seed : random seed for reproducibility
+    
     """
     DGP:
         X ~ N(0, Sigma) where Sigma has off-diagonal rho
