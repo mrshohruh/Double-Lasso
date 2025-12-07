@@ -5,7 +5,6 @@ import pandas as pd
 from typing import Callable
 
 from protocols import DGPProtocol, EstimatorProtocol
-from estimators.lasso import plugin_alpha
 
 def run_simulation(*,
                    R: int = 500,
@@ -16,6 +15,7 @@ def run_simulation(*,
                    rho: float = 0.2,
                    ci_level: float = 0.95,
                    c: float = 1.1,
+                   plugin_alpha_level: float = 0.1,
                    seed: int = 123,
                    use_cv: bool = False,
                    dgp: DGPProtocol,
@@ -25,8 +25,15 @@ def run_simulation(*,
     rows = []
     for _ in range(R):
         Y, D, X = dgp(n=n, p=p, s=s, beta1=beta1, rho=rho, seed=rng.integers(0, 1_000_000))
-        alpha = plugin_alpha(n, p, c=c)
-        est = estimator(Y, D, X, alpha=alpha, ci_level=ci_level, use_cv=use_cv)
+        est = estimator(
+            Y,
+            D,
+            X,
+            ci_level=ci_level,
+            use_cv=use_cv,
+            plugin_c=c,
+            plugin_alpha_level=plugin_alpha_level,
+        )
         covered = int((est["ci_low"] <= beta1) and (beta1 <= est["ci_high"]))
         rows.append({
             "beta1_hat": est["beta1_hat"],
@@ -37,6 +44,8 @@ def run_simulation(*,
             "covered": covered,
             "k_y": est["k_y"],
             "k_d": est["k_d"],
-            "alpha": est["alpha"],
+            "alpha": est.get("alpha_y", np.nan),
+            "alpha_y": est.get("alpha_y", np.nan),
+            "alpha_d": est.get("alpha_d", np.nan),
         })
     return pd.DataFrame(rows)
