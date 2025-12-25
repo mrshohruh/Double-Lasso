@@ -11,8 +11,7 @@ from dgps.heavy_tail_dgp import simulate_dgp as heavy_tail_dgp
 from estimators.lasso import double_lasso_ci
 from estimators.ols import ols_ci
 from runner import run_simulation
-from orchestrator import sweep_designs
-from scenarios import get_scenarios
+from scenarios import get_scenarios, SimulationScenario
 
 DGP_MAP = {
     "static": static_dgp,
@@ -38,18 +37,6 @@ def resolve_estimator(name: str):
         return ESTIMATOR_MAP[name]
     except KeyError as exc:
         raise ValueError(f"Unknown estimator '{name}'. Options: {', '.join(ESTIMATOR_MAP)}") from exc
-
-
-PARAM_NAME_MAP = {
-    "n": "n_samples",
-    "p": "n_covariates",
-    "s": "n_relevant_covariates",
-    "rho": "covariate_correlation",
-    "n_samples": "n_samples",
-    "n_covariates": "n_covariates",
-    "n_relevant_covariates": "n_relevant_covariates",
-    "covariate_correlation": "covariate_correlation",
-}
 
 
 def write_summary(folder: str, beta1_true: float = 2.0, scenario_names: list[str] | None = None) -> pd.DataFrame:
@@ -113,25 +100,6 @@ def main():
     runp.add_argument("--use_cv", action="store_true",
                       help="Use cross-validated alpha instead of plugin alpha.")
 
-    # sweep
-    swp = sub.add_parser("sweep", help="Sweep over one design parameter.")
-    swp.add_argument("--param", type=str, choices=list(PARAM_NAME_MAP), default="n")
-    swp.add_argument("--values", type=str, default="120,200,320")
-    swp.add_argument("--R", type=int, default=500, help="Number of Monte Carlo replications")
-    swp.add_argument("--n", type=int, default=200)
-    swp.add_argument("--p", type=int, default=400)
-    swp.add_argument("--s", type=int, default=5)
-    swp.add_argument("--beta1", type=float, default=2.0)
-    swp.add_argument("--rho", type=float, default=0.2)
-    swp.add_argument("--c", type=float, default=0.6)
-    swp.add_argument("--ci", type=float, default=0.95)
-    swp.add_argument("--seed", type=int, default=123)
-    swp.add_argument("--out", type=str, default="sweep_results.csv")
-    swp.add_argument("--dgp", type=str, default="static", choices=list(DGP_MAP))
-    swp.add_argument("--estimator", type=str, default="double_lasso", choices=list(ESTIMATOR_MAP))
-    swp.add_argument("--use_cv", action="store_true",
-                     help="Use cross-validated alpha instead of plugin alpha.")
-
     # scenarios
     scp = sub.add_parser("scenarios", help="Run predefined scenarios.")
     scp.add_argument("--outdir", type=str, default="results")
@@ -150,51 +118,26 @@ def main():
         outdir = os.path.dirname(args.out)
         if outdir:
             os.makedirs(outdir, exist_ok=True)
-        df = run_simulation(
-            R=args.R,
+        scenario = SimulationScenario(
+            name="cli_single_run",
             n_samples=args.n,
             n_covariates=args.p,
             n_relevant_covariates=args.s,
             treatment_effect=args.beta1,
             covariate_correlation=args.rho,
-            ci_level=args.ci,
+            R=args.R,
             plugin_c=args.c,
+            ci_level=args.ci,
             seed=args.seed,
+        )
+        df = run_simulation(
+            **scenario.to_run_kwargs(),
             use_cv=args.use_cv,
             dgp=dgp,
             estimator=estimator,
         )
         df.to_csv(args.out, index=False)
         print(f"Saved to {args.out}")
-
-    elif args.cmd == "sweep":
-        outdir = os.path.dirname(args.out)
-        if outdir:
-            os.makedirs(outdir, exist_ok=True)
-        canonical_param = PARAM_NAME_MAP[args.param]
-        base = dict(
-            n_samples=args.n,
-            n_covariates=args.p,
-            n_relevant_covariates=args.s,
-            treatment_effect=args.beta1,
-            covariate_correlation=args.rho,
-        )
-        value_type = type(base[canonical_param])
-        values = [value_type(v) for v in args.values.split(",")]
-        sweep = sweep_designs(
-            param=canonical_param,
-            values=values,
-            R=args.R,
-            ci_level=args.ci,
-            plugin_c=args.c,
-            seed=args.seed,
-            use_cv=args.use_cv,
-            dgp=dgp,
-            estimator=estimator,
-            save_csv=args.out,
-        )
-        print(sweep)
-        print(f"Saved sweep to {args.out}")
 
     elif args.cmd == "scenarios":
         import os
@@ -211,22 +154,11 @@ def main():
             if not scenarios:
                 raise ValueError(f"No matching scenarios for names: {selected}")
         for sc in scenarios:
-            scenario_kwargs = dict(
-                R=sc.R,
-                n_samples=sc.n_samples,
-                n_covariates=sc.n_covariates,
-                n_relevant_covariates=sc.n_relevant_covariates,
-                treatment_effect=sc.treatment_effect,
-                covariate_correlation=sc.covariate_correlation,
-                ci_level=sc.ci_level,
-                plugin_c=sc.plugin_c,
-                seed=sc.seed,
-                use_cv=args.use_cv,
-            )
             df = run_simulation(
+                **sc.to_run_kwargs(),
+                use_cv=args.use_cv,
                 dgp=dgp,
                 estimator=estimator,
-                **scenario_kwargs,
             )
             out = f"{outdir}/{sc.name}.csv"
             df.to_csv(out, index=False)

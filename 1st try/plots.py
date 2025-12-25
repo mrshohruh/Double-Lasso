@@ -42,6 +42,16 @@ LABELS = {
     "results_heavycv": "Cross-validated alpha (heavy-tailed dgp)",
 }
 
+# Preserve a consistent legend order across all plots
+LABEL_ORDER = [
+    LABELS["results"],
+    LABELS["results_cv"],
+    LABELS["results_easierdgp"],
+    LABELS["results_ecv"],
+    LABELS["results_heavy"],
+    LABELS["results_heavycv"],
+]
+
 COLORS = {
     "Plugin alpha (static dgp)": "#1f77b4",
     "Cross-validated alpha (static dgp)": "#d62728",
@@ -74,7 +84,30 @@ SCENARIO_PARAMS = {
     "large_rho_0_5": dict(n_samples=320, n_covariates=384, covariate_correlation=0.5),
 }
 
-SCENARIO_ORDER = list(SCENARIO_PARAMS.keys())
+SCENARIO_ORDER = [
+    "large_corr_0_0",
+    "large_corr_0_2",
+    "large_corr_0_5",
+    "medium_corr_0_0",
+    "medium_corr_0_2",
+    "medium_corr_0_5",
+    "small_corr_0_0",
+    "small_corr_0_2",
+    "small_corr_0_5",
+    "classical_low_dim",
+    "near_p_equals_n",
+    "p_equals_n",
+    # Legacy aliases
+    "large",
+    "large_rho_0",
+    "large_rho_0_5",
+    "medium",
+    "medium_rho_0",
+    "medium_rho_0_5",
+    "small",
+    "small_rho_0",
+    "small_rho_0_5",
+]
 
 
 def load_run_data() -> pd.DataFrame:
@@ -120,6 +153,18 @@ def load_run_data() -> pd.DataFrame:
     return pd.concat(rows, ignore_index=True)
 
 
+def _ordered_labels(labels: list[str]) -> list[str]:
+    """Return labels in the global LABEL_ORDER, dropping missing ones."""
+    present = set(labels)
+    return [lbl for lbl in LABEL_ORDER if lbl in present]
+
+
+def _ordered_scenarios(scenarios: list[str]) -> list[str]:
+    """Return scenarios in the global SCENARIO_ORDER, dropping missing ones."""
+    present = set(scenarios)
+    return [sc for sc in SCENARIO_ORDER if sc in present]
+
+
 def load_summaries() -> pd.DataFrame:
     frames = []
     for key, folder in RESULT_FOLDERS.items():
@@ -142,14 +187,19 @@ def load_summaries() -> pd.DataFrame:
     if not frames:
         raise FileNotFoundError("No summary.csv files found in configured result folders.")
     out = pd.concat(frames, ignore_index=True)
-    out[["n_samples", "n_covariates", "covariate_correlation"]] = out["scenario"].map(SCENARIO_PARAMS).apply(pd.Series)
+    # Backfill missing scenario metadata with NaNs to avoid shape errors
+    scenario_meta = out["scenario"].map(SCENARIO_PARAMS).apply(
+        lambda meta: meta if isinstance(meta, dict) else {"n_samples": np.nan, "n_covariates": np.nan, "covariate_correlation": np.nan}
+    )
+    out[["n_samples", "n_covariates", "covariate_correlation"]] = scenario_meta.apply(pd.Series)
     return out
 
 
 def plot_coverage_by_scenario(df: pd.DataFrame, outfile: Path) -> None:
-    order = [s for s in SCENARIO_ORDER if s in df["scenario"].unique()]
+    order = _ordered_scenarios(df["scenario"].unique().tolist())
     pivot = df.pivot(index="scenario", columns="label", values="coverage")
     pivot = pivot.loc[order]
+    pivot = pivot[_ordered_labels(pivot.columns.tolist())]
     ax = pivot.plot(kind="bar", figsize=(11, 5), color=[COLORS.get(c, None) for c in pivot.columns])
     ax.axhline(0.95, color="black", linestyle="--", linewidth=1)
     ax.set_xlabel("Scenario")
@@ -163,9 +213,10 @@ def plot_coverage_by_scenario(df: pd.DataFrame, outfile: Path) -> None:
 
 
 def plot_metric_by_scenario(df: pd.DataFrame, metric: str, ylabel: str, title: str, outfile: Path) -> None:
-    order = [s for s in SCENARIO_ORDER if s in df["scenario"].unique()]
+    order = _ordered_scenarios(df["scenario"].unique().tolist())
     pivot = df.pivot(index="scenario", columns="label", values=metric)
     pivot = pivot.loc[order]
+    pivot = pivot[_ordered_labels(pivot.columns.tolist())]
     ax = pivot.plot(kind="bar", figsize=(11, 5), color=[COLORS.get(c, None) for c in pivot.columns])
     ax.set_xlabel("Scenario")
     ax.set_ylabel(ylabel)
@@ -179,7 +230,8 @@ def plot_metric_by_scenario(df: pd.DataFrame, metric: str, ylabel: str, title: s
 
 def line_plot(df: pd.DataFrame, x: str, title: str, outfile: Path) -> None:
     fig, ax = plt.subplots(figsize=(8, 5))
-    for label, group in df.groupby("label"):
+    for label in _ordered_labels(df["label"].unique().tolist()):
+        group = df[df["label"] == label]
         sorted_group = group.sort_values(x)
         ax.plot(sorted_group[x], sorted_group["coverage"], marker="o",
                 label=label, color=COLORS.get(label, None))
@@ -213,9 +265,10 @@ def plot_coverage_vs_p(df: pd.DataFrame, outfile: Path) -> None:
 
 
 def plot_ci_length_by_scenario(df: pd.DataFrame, outfile: Path) -> None:
-    order = [s for s in SCENARIO_ORDER if s in df["scenario"].unique()]
+    order = _ordered_scenarios(df["scenario"].unique().tolist())
     pivot = df.pivot(index="scenario", columns="label", values="ci_length_mean")
     pivot = pivot.loc[order]
+    pivot = pivot[_ordered_labels(pivot.columns.tolist())]
     ax = pivot.plot(kind="bar", figsize=(11, 5), color=[COLORS.get(c, None) for c in pivot.columns])
     ax.set_xlabel("Scenario")
     ax.set_ylabel("Avg CI length")
@@ -234,12 +287,12 @@ def plot_ci_length_boxplots(df_runs: pd.DataFrame, outdir: Path) -> None:
     if df_runs.empty:
         return
     outdir.mkdir(parents=True, exist_ok=True)
-    for scenario in sorted(df_runs["scenario"].unique()):
+    for scenario in _ordered_scenarios(df_runs["scenario"].unique().tolist()):
         subset = df_runs[df_runs["scenario"] == scenario]
         if subset.empty:
             continue
-        data = [group["ci_length"].dropna() for _, group in subset.groupby("label")]
-        labels = [label for label, _ in subset.groupby("label")]
+        labels = _ordered_labels(subset["label"].unique().tolist())
+        data = [subset[subset["label"] == label]["ci_length"].dropna() for label in labels]
         colors = [COLORS.get(label, None) for label in labels]
         fig, ax = plt.subplots(figsize=(7, 5))
         bp = ax.boxplot(data, patch_artist=True, labels=labels)
@@ -261,7 +314,7 @@ def plot_beta_hat_distribution(df_runs: pd.DataFrame, outdir: Path, beta_true: f
     if df_runs.empty or "treatment_effect_hat" not in df_runs.columns:
         return
     outdir.mkdir(parents=True, exist_ok=True)
-    for scenario in sorted(df_runs["scenario"].unique()):
+    for scenario in _ordered_scenarios(df_runs["scenario"].unique().tolist()):
         subset = df_runs[df_runs["scenario"] == scenario]
         if subset.empty:
             continue
@@ -271,7 +324,8 @@ def plot_beta_hat_distribution(df_runs: pd.DataFrame, outdir: Path, beta_true: f
             plt.close(fig)
             continue
         x_grid = np.linspace(all_vals.min(), all_vals.max(), 200)
-        for label, group in subset.groupby("label"):
+        for label in _ordered_labels(subset["label"].unique().tolist()):
+            group = subset[subset["label"] == label]
             vals = group["treatment_effect_hat"].dropna()
             if vals.empty:
                 continue
@@ -300,12 +354,12 @@ def plot_selection_box_violin(df_runs: pd.DataFrame, metric: str, outdir: Path) 
     if df_runs.empty or metric not in df_runs.columns:
         return
     outdir.mkdir(parents=True, exist_ok=True)
-    for scenario in sorted(df_runs["scenario"].unique()):
+    for scenario in _ordered_scenarios(df_runs["scenario"].unique().tolist()):
         subset = df_runs[df_runs["scenario"] == scenario]
         if subset.empty:
             continue
-        data = [group[metric].dropna() for _, group in subset.groupby("label")]
-        labels = [label for label, _ in subset.groupby("label")]
+        labels = _ordered_labels(subset["label"].unique().tolist())
+        data = [subset[subset["label"] == label][metric].dropna() for label in labels]
         colors = [COLORS.get(label, None) for label in labels]
 
         fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
@@ -335,10 +389,11 @@ def plot_selection_box_violin(df_runs: pd.DataFrame, metric: str, outdir: Path) 
 
 
 def plot_k_line(df: pd.DataFrame, metric: str, ylabel: str, title: str, outfile: Path) -> None:
-    order = [s for s in SCENARIO_ORDER if s in df["scenario"].unique()]
+    order = _ordered_scenarios(df["scenario"].unique().tolist())
     x = range(len(order))
     fig, ax = plt.subplots(figsize=(11, 5))
-    for label, group in df.groupby("label"):
+    for label in _ordered_labels(df["label"].unique().tolist()):
+        group = df[df["label"] == label]
         ordered_vals = [group[group["scenario"] == sc][metric].values[0] for sc in order if sc in set(group["scenario"])]
         ax.plot(x[:len(ordered_vals)], ordered_vals, marker="o", label=label, color=COLORS.get(label, None))
     ax.set_xticks(list(x))
@@ -356,7 +411,7 @@ def plot_summary_dashboard(df: pd.DataFrame, outfile: Path) -> None:
     """
     Combined dashboard: coverage, bias, CI length, and selected-controls counts across scenarios.
     """
-    order = [s for s in SCENARIO_ORDER if s in df["scenario"].unique()]
+    order = _ordered_scenarios(df["scenario"].unique().tolist())
     metrics = [
         ("coverage", "Coverage"),
         ("bias", "Bias"),
@@ -375,6 +430,7 @@ def plot_summary_dashboard(df: pd.DataFrame, outfile: Path) -> None:
             ax.axis("off")
             continue
         pivot = pivot.loc[order]
+        pivot = pivot[_ordered_labels(pivot.columns.tolist())]
         pivot.plot(kind="bar", ax=ax, color=[COLORS.get(c, None) for c in pivot.columns])
         if metric == "coverage":
             ax.axhline(0.95, color="black", linestyle="--", linewidth=1)
@@ -410,6 +466,8 @@ def plot_overall_summary(df: pd.DataFrame, outfile: Path) -> None:
         ("n_selected_treatment_controls_mean", "Avg treatment controls"),
     ]
     grouped = df.groupby("label").agg({m[0]: "mean" for m in metrics}).reset_index()
+    grouped["label"] = pd.Categorical(grouped["label"], categories=LABEL_ORDER, ordered=True)
+    grouped = grouped.sort_values("label")
     n_axes = len(metrics)
     rows, cols = 2, 3
     fig, axes = plt.subplots(rows, cols, figsize=(cols * 4.5, rows * 4))

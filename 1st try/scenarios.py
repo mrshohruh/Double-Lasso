@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Dict, Any
 
 
 @dataclass
@@ -13,6 +14,20 @@ class SimulationScenario:
     plugin_c: float = 0.6
     ci_level: float = 0.95
     seed: int = 123
+
+    def to_run_kwargs(self) -> Dict[str, Any]:
+        """Convert the scenario into run_simulation keyword arguments."""
+        return dict(
+            R=self.R,
+            n_samples=self.n_samples,
+            n_covariates=self.n_covariates,
+            n_relevant_covariates=self.n_relevant_covariates,
+            treatment_effect=self.treatment_effect,
+            covariate_correlation=self.covariate_correlation,
+            ci_level=self.ci_level,
+            plugin_c=self.plugin_c,
+            seed=self.seed,
+        )
 
 
 def get_scenarios() -> list[SimulationScenario]:
