@@ -1,33 +1,30 @@
 
+from __future__ import annotations
 import numpy as np
 
-def simulate_dgp(n=200, p=100, s=5, beta1=2.0, rho=0.0, seed=None):
-
-    # n : number of samples
-    # p : number of covariates
-    # s : number of relevant covariates
-    # beta1 : treatment effect
-    # rho : correlation between covariates
-    # seed : random seed for reproducibility
-    
-    """
-    DGP:
-        X ~ N(0, Sigma) where Sigma has off-diagonal rho
-        D = sum_{j<=s} X_j + v
-        Y = beta1 * D + sum_{j<=s} X_j + u
-    """
+def simulate_dgp(
+    n_samples: int = 200,
+    n_covariates: int = 240,
+    n_relevant_covariates: int = 5,
+    treatment_effect: float = 2.0,
+    covariate_correlation: float = 0.0,
+    seed: int | None = None,
+):
     rng = np.random.default_rng(seed)
-    if rho == 0.0:
-        X = rng.normal(size=(n, p))
+    if covariate_correlation == 0.0:
+        covariates = rng.normal(size=(n_samples, n_covariates))
     else:
-        # Equicorrelated Sigma = (1-rho) I + rho * 11'
-        L = np.linalg.cholesky((1 - rho) * np.eye(p) + rho * np.ones((p, p)))
-        X = rng.normal(size=(n, p)) @ L.T
+        covariance_matrix = (
+            (1 - covariate_correlation) * np.eye(n_covariates)
+            + covariate_correlation * np.ones((n_covariates, n_covariates))
+        )
+        cholesky_factor = np.linalg.cholesky(covariance_matrix)
+        covariates = rng.normal(size=(n_samples, n_covariates)) @ cholesky_factor.T
 
-    signal_x = X[:, :s].sum(axis=1)
-    v = rng.normal(size=n)
-    u = rng.normal(size=n)
+    confounding_signal = covariates[:, :n_relevant_covariates].sum(axis=1)
+    treatment_noise = rng.normal(size=n_samples)
+    outcome_noise = rng.normal(size=n_samples)
 
-    D = signal_x + v
-    Y = beta1 * D + signal_x + u
-    return Y, D, X
+    treatment = confounding_signal + treatment_noise
+    outcome = treatment_effect * treatment + confounding_signal + outcome_noise
+    return outcome, treatment, covariates

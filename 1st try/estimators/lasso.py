@@ -4,7 +4,13 @@ import statsmodels.api as sm
 from scipy.stats import norm
 
 
-def _plugin_alpha_from_sigma(n, p, sigma_hat, c=1.1, alpha_level=0.1):
+def _plugin_alpha_from_sigma(
+    n_samples,
+    n_covariates,
+    sigma_hat,
+    c=1.1,
+    alpha_level=0.1,
+):
     """
     Compute sklearn's alpha from a given sigma_hat using the plug-in rule
     from Chernozhukov et al. (Chapter 3).
@@ -24,19 +30,19 @@ def _plugin_alpha_from_sigma(n, p, sigma_hat, c=1.1, alpha_level=0.1):
     So:
         alpha_sklearn = c * sigma_hat * sqrt(2 * log(2p / alpha_level) / n)
     """
-    if p <= 0:
-        raise ValueError("Number of predictors p must be positive.")
+    if n_covariates <= 0:
+        raise ValueError("Number of predictors n_covariates must be positive.")
     if not (0 < alpha_level < 1):
         raise ValueError("alpha_level must be in (0, 1).")
 
     # alpha for sklearn's Lasso
     alpha_sklearn = (
-        c * sigma_hat * np.sqrt(2.0 * np.log(2.0 * p / alpha_level) / n)
+        c * sigma_hat * np.sqrt(2.0 * np.log(2.0 * n_covariates / alpha_level) / n_samples)
     )
     return alpha_sklearn
 
 
-def plugin_alpha(X, y, c=1.1, alpha_level=0.1, max_iter=1, tol=1e-4):
+def plugin_alpha(covariates, outcome, c=1.1, alpha_level=0.1, max_iter=1, tol=1e-4):
     """
     Plug-in style L1 penalty for sklearn's Lasso:
         (1/(2n)) ||y - Xb||^2 + alpha ||b||_1
@@ -46,9 +52,9 @@ def plugin_alpha(X, y, c=1.1, alpha_level=0.1, max_iter=1, tol=1e-4):
 
     Parameters
     ----------
-    X : array-like, shape (n, p)
+    covariates : array-like, shape (n_samples, n_covariates)
         Design matrix.
-    y : array-like, shape (n,)
+    outcome : array-like, shape (n_samples,)
         Response vector.
     c : float
         Multiplicative constant in the penalty rule (typically slightly > 1).
@@ -65,13 +71,13 @@ def plugin_alpha(X, y, c=1.1, alpha_level=0.1, max_iter=1, tol=1e-4):
     alpha : float
         Penalty parameter in sklearn scale to be passed to Lasso(alpha=...).
     """
-    X = np.asarray(X)
-    y = np.asarray(y)
-    n, p = X.shape
+    covariates = np.asarray(covariates)
+    outcome = np.asarray(outcome)
+    n_samples, n_covariates = covariates.shape
 
     # Initial sigma_hat: residual std from intercept-only model
-    y_centered = y - y.mean()
-    sigma_hat = float(np.sqrt(np.mean(y_centered ** 2)))
+    outcome_centered = outcome - outcome.mean()
+    sigma_hat = float(np.sqrt(np.mean(outcome_centered ** 2)))
 
     if sigma_hat <= 0:
         # Degenerate case; fall back to 1.0 to avoid crashes
@@ -79,8 +85,8 @@ def plugin_alpha(X, y, c=1.1, alpha_level=0.1, max_iter=1, tol=1e-4):
 
     for _ in range(max_iter):
         alpha_current = _plugin_alpha_from_sigma(
-            n=n,
-            p=p,
+            n_samples=n_samples,
+            n_covariates=n_covariates,
             sigma_hat=sigma_hat,
             c=c,
             alpha_level=alpha_level,
@@ -88,9 +94,9 @@ def plugin_alpha(X, y, c=1.1, alpha_level=0.1, max_iter=1, tol=1e-4):
 
         # Fit Lasso with current alpha to update sigma_hat
         model = Lasso(alpha=alpha_current, fit_intercept=True, max_iter=5000)
-        model.fit(X, y)
-        resid = y - model.predict(X)
-        sigma_new = float(np.sqrt(np.mean(resid ** 2)))
+        model.fit(covariates, outcome)
+        residuals = outcome - model.predict(covariates)
+        sigma_new = float(np.sqrt(np.mean(residuals ** 2)))
 
         if abs(sigma_new - sigma_hat) <= tol:
             sigma_hat = sigma_new
@@ -99,8 +105,8 @@ def plugin_alpha(X, y, c=1.1, alpha_level=0.1, max_iter=1, tol=1e-4):
 
     # Final alpha based on final sigma_hat
     alpha_final = _plugin_alpha_from_sigma(
-        n=n,
-        p=p,
+        n_samples=n_samples,
+        n_covariates=n_covariates,
         sigma_hat=sigma_hat,
         c=c,
         alpha_level=alpha_level,
@@ -108,124 +114,121 @@ def plugin_alpha(X, y, c=1.1, alpha_level=0.1, max_iter=1, tol=1e-4):
     return alpha_final
 
 
-def cv_alpha(X, y):
+def cv_alpha(covariates, outcome):
     """
     Compute alpha via 10-fold cross-validation (sklearn's LassoCV).
     Returns the selected alpha_.
     """
-    X = np.asarray(X)
-    y = np.asarray(y)
+    covariates = np.asarray(covariates)
+    outcome = np.asarray(outcome)
     model = LassoCV(cv=10, fit_intercept=True, n_jobs=-1)
-    model.fit(X, y)
+    model.fit(covariates, outcome)
     return float(model.alpha_)
 
 
-def lasso_residuals(X, y, alpha):
+def lasso_residuals(covariates, outcome, alpha):
     """
-    Fit Lasso(y ~ X) and return residuals y - (intercept + X b_hat),
+    Fit Lasso(outcome ~ covariates) and return residuals outcome - (intercept + covariates b_hat),
     along with the fitted model.
     """
-    X = np.asarray(X)
-    y = np.asarray(y)
+    covariates = np.asarray(covariates)
+    outcome = np.asarray(outcome)
 
     model = Lasso(alpha=alpha, fit_intercept=True, max_iter=5000)
-    model.fit(X, y)
-    y_hat = model.predict(X)
-    resid = y - y_hat
-    return resid, model
+    model.fit(covariates, outcome)
+    y_hat = model.predict(covariates)
+    residuals = outcome - y_hat
+    return residuals, model
 
 
-def double_lasso_ci(Y, D, X, alpha=None, ci_level=0.95, use_cv=False,
+def double_lasso_ci(outcome, treatment, covariates, alpha=None, ci_level=0.95, use_cv=False,
                     plugin_c=1.1, plugin_alpha_level=0.1):
     """
-    Double LASSO confidence interval for the coefficient of D in:
-        Y = beta1 * D + X * gamma + eps
+    Double LASSO confidence interval for the coefficient of treatment in:
+        outcome = treatment_effect * treatment + covariates * gamma + eps
 
     Steps:
-      1) Lasso Y ~ X -> residuals Y~.
-      2) Lasso D ~ X -> residuals D~.
-      3) OLS Y~ on D~, HC3 robust SE -> CI for beta1.
+      1) Lasso outcome ~ covariates -> residuals.
+      2) Lasso treatment ~ covariates -> residuals.
+      3) OLS residual(outcome) on residual(treatment), HC3 robust SE -> CI for treatment_effect.
 
     Parameters
     ----------
-    Y : array-like, shape (n,)
+    outcome : array-like, shape (n_samples,)
         Outcome.
-    D : array-like, shape (n,)
+    treatment : array-like, shape (n_samples,)
         Treatment / target regressor.
-    X : array-like, shape (n, p)
+    covariates : array-like, shape (n_samples, n_covariates)
         Controls.
     alpha : float or None
         If not None and use_cv=False, this value is used as the Lasso alpha
-        for both Y and D equations (sklearn scale).
+        for both outcome and treatment equations (sklearn scale).
     ci_level : float
         Confidence level (e.g., 0.95).
     use_cv : bool
-        If True, use LassoCV to select alpha for Y and D separately.
+        If True, use LassoCV to select alpha for outcome and treatment separately.
         If False and alpha is None, use the plug-in rule (Chernozhukov et al.).
     plugin_c : float
-        Constant c used in the plug-in penalty rule (typically ~1.1).
+        Constant c used in the plug-in penalty rule (default 0.6).
     plugin_alpha_level : float
         Tail probability 'a' in log(2p/a) in the plug-in rule.
 
     Returns
     -------
     results : dict with keys
-        - beta1_hat : float
-        - se_HC3    : float
-        - ci_low    : float
-        - ci_high   : float
-        - k_y       : int   (number of selected controls in Y~ regression)
-        - k_d       : int   (number of selected controls in D~ regression)
-        - alpha_y   : float (alpha used for Y regression)
-        - alpha_d   : float (alpha used for D regression)
+        - treatment_effect_hat : float
+        - standard_error_HC3   : float
+        - ci_lower             : float
+        - ci_upper             : float
+        - n_selected_outcome_controls    : int   (number of selected controls in outcome regression)
+        - n_selected_treatment_controls  : int   (number of selected controls in treatment regression)
+        - outcome_lasso_penalty          : float (alpha used for outcome regression)
+        - treatment_lasso_penalty        : float (alpha used for treatment regression)
     """
-    Y = np.asarray(Y)
-    D = np.asarray(D)
-    X = np.asarray(X)
-    n, p = X.shape
+    outcome = np.asarray(outcome)
+    treatment = np.asarray(treatment)
+    covariates = np.asarray(covariates)
+    n_samples, n_covariates = covariates.shape
 
     # Choose penalty levels
     if use_cv:
-        alpha_y = cv_alpha(X, Y)
-        alpha_d = cv_alpha(X, D)
+        outcome_lasso_penalty = cv_alpha(covariates, outcome)
+        treatment_lasso_penalty = cv_alpha(covariates, treatment)
     else:
         if alpha is not None:
             # User-specified alpha (same for both equations)
-            alpha_y = alpha_d = float(alpha)
+            outcome_lasso_penalty = treatment_lasso_penalty = float(alpha)
         else:
             # True plug-in rule, potentially different for Y and D equations
-            alpha_y = plugin_alpha(
-                X, Y, c=plugin_c, alpha_level=plugin_alpha_level
+            outcome_lasso_penalty = plugin_alpha(
+                covariates, outcome, c=plugin_c, alpha_level=plugin_alpha_level
             )
-            alpha_d = plugin_alpha(
-                X, D, c=plugin_c, alpha_level=plugin_alpha_level
+            treatment_lasso_penalty = plugin_alpha(
+                covariates, treatment, c=plugin_c, alpha_level=plugin_alpha_level
             )
 
-    # Step 1: partial out X from Y
-    Y_resid, model_y = lasso_residuals(X, Y, alpha_y)
+    outcome_residual, outcome_model = lasso_residuals(covariates, outcome, outcome_lasso_penalty)
 
-    # Step 2: partial out X from D
-    D_resid, model_d = lasso_residuals(X, D, alpha_d)
+    treatment_residual, treatment_model = lasso_residuals(covariates, treatment, treatment_lasso_penalty)
 
-    # Step 3: OLS on residuals with HC3
-    X_ols = sm.add_constant(D_resid)
-    ols_fit = sm.OLS(Y_resid, X_ols).fit(cov_type="HC3")
+    covariates_ols = sm.add_constant(treatment_residual)
+    ols_fit = sm.OLS(outcome_residual, covariates_ols).fit(cov_type="HC3")
 
-    beta1_hat = float(ols_fit.params[1])
-    se = float(ols_fit.bse[1])
+    treatment_effect_hat = float(ols_fit.params[1])
+    standard_error = float(ols_fit.bse[1])
 
     # z-quantile for desired CI level
     z = norm.ppf(0.5 + ci_level / 2.0)
-    ci_low = beta1_hat - z * se
-    ci_high = beta1_hat + z * se
+    ci_lower = treatment_effect_hat - z * standard_error
+    ci_upper = treatment_effect_hat + z * standard_error
 
     return {
-        "beta1_hat": beta1_hat,
-        "se_HC3": se,
-        "ci_low": float(ci_low),
-        "ci_high": float(ci_high),
-        "k_y": int(np.sum(model_y.coef_ != 0)),
-        "k_d": int(np.sum(model_d.coef_ != 0)),
-        "alpha_y": float(alpha_y),
-        "alpha_d": float(alpha_d),
+        "treatment_effect_hat": treatment_effect_hat,
+        "standard_error_HC3": standard_error,
+        "ci_lower": float(ci_lower),
+        "ci_upper": float(ci_upper),
+        "n_selected_outcome_controls": int(np.sum(outcome_model.coef_ != 0)),
+        "n_selected_treatment_controls": int(np.sum(treatment_model.coef_ != 0)),
+        "outcome_lasso_penalty": float(outcome_lasso_penalty),
+        "treatment_lasso_penalty": float(treatment_lasso_penalty),
     }

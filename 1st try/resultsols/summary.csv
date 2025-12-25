@@ -1,0 +1,4 @@
+scenario,rows,coverage,treatment_effect_hat_mean,bias,rmse,ci_length_mean,n_selected_outcome_controls_mean,n_selected_treatment_controls_mean,outcome_lasso_penalty_mean,treatment_lasso_penalty_mean,standard_error_HC3_mean
+classical_low_dim,500,0.966,2.0004035073651454,0.00040350736514547993,0.07227851991058935,0.3109697356436708,20.0,20.0,,,0.07933047191085149
+near_p_equals_n,500,1.0,1.9913037769201014,-0.00869622307989838,0.22589205801694948,3.188896296513979,180.0,180.0,,,0.8135089016093118
+p_equals_n,500,0.992,2.0447613543081413,0.04476135430814109,0.9688459351856225,inf,200.0,200.0,,,inf
