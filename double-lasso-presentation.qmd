@@ -1,0 +1,189 @@
+---
+title: "Double LASSO in High-Dimensional Linear Models"
+subtitle: "Confidence-Interval Performance and DGPs"
+author: "Shokhrukhkhon Nishonkulov, Olimjon Umurzokov, Damir Abdulazizov"
+format:
+  revealjs:
+    slide-number: true
+    incremental: true
+    theme: default
+    transition: fade
+    center: true
+---
+
+## Motivation
+
+- High-dimensional regression: $p$ can be comparable to or larger than $n$
+- Naive post-selection inference is biased after model selection
+- Double LASSO uses orthogonalization to obtain valid inference
+- Goal: study finite-sample CI coverage under different DGPs
+
+## Baseline Linear Model
+
+We observe $(Y_i, D_i, X_i)$ for $i = 1, \ldots, n$ and posit
+
+$$
+Y_i = \beta_0 D_i + X_i' \theta_0 + u_i
+$$
+
+where $D_i$ is the target regressor and $X_i \in \mathbb{R}^p$ are controls.
+
+## First-Stage (Treatment) Equation
+
+$$
+D_i = X_i' \gamma_0 + v_i
+$$
+
+The key problem: $X_i$ is high-dimensional, so we use sparsity to recover
+the relevant controls in both equations.
+
+## LASSO Estimator
+
+For any response $Z$ and design $X$,
+
+$$
+\hat{\theta} = \arg\min_{\theta}
+\left\{
+\frac{1}{2n}\sum_{i=1}^n (Z_i - X_i' \theta)^2
+ + \lambda \|\theta\|_1
+\right\}
+$$
+
+Penalty $\lambda$ is chosen either by plug-in rules or cross-validation.
+
+## Double LASSO (Double Selection)
+
+1. Run LASSO of $Y$ on $X$ to select $\hat{S}_y$
+2. Run LASSO of $D$ on $X$ to select $\hat{S}_d$
+3. Regress $Y$ on $D$ and $X_{\hat{S}_y \cup \hat{S}_d}$ by OLS
+
+The coefficient on $D$ is $\hat{\beta}_{DL}$.
+
+## Orthogonal Score (Theory)
+
+Define the orthogonal moment
+
+$$
+\psi(W_i, \beta, \eta)
+= (Y_i - X_i' \theta - \beta D_i)(D_i - X_i' \gamma)
+$$
+
+With $\eta = (\theta, \gamma)$, orthogonality holds:
+
+$$
+\left.\frac{\partial}{\partial \eta}
+\mathbb{E}[\psi(W_i, \beta_0, \eta)]\right|_{\eta=\eta_0} = 0
+$$
+
+This reduces sensitivity to first-stage errors.
+
+## Approximate Sparsity
+
+Let $\theta_0$ and $\gamma_0$ be approximately sparse:
+
+$$
+\|\theta_0\|_0 = s_y, \quad \|\gamma_0\|_0 = s_d, \quad
+s_y, s_d \ll n
+$$
+
+Under regularity conditions, Double LASSO yields
+
+$$
+\sqrt{n}(\hat{\beta}_{DL} - \beta_0) \Rightarrow N(0, \sigma^2)
+$$
+
+## Confidence Interval
+
+Standard CI:
+
+$$
+\hat{\beta}_{DL} \pm z_{1-\alpha/2} \cdot \widehat{SE}(\hat{\beta}_{DL})
+$$
+
+Coverage and length are evaluated by Monte Carlo simulation.
+
+## Data-Generating Processes (DGPs)
+
+All DGPs share:
+
+$$
+D = \gamma_D \cdot \text{signal} + v, \quad
+Y = \beta_0 D + \gamma_Y \cdot \text{signal} + u
+$$
+
+They differ in the distribution of $X$ and the signal structure.
+
+## DGP 1: Static (Baseline)
+
+Covariates $X$ are Gaussian with optional equicorrelation:
+
+$$
+X \sim N(0, \Sigma), \quad
+\Sigma_{jk} = \rho \text{ for } j \neq k
+$$
+
+Signal is a sum of the first $s$ covariates:
+
+$$
+\text{signal} = \sum_{j=1}^{s} X_j
+$$
+
+## DGP 2: Static Easier
+
+Gaussian covariates with equicorrelation, but approximate sparsity:
+
+$$
+b_j \propto \frac{1}{j^2}, \quad j = 1,\ldots,s
+$$
+
+$$
+\text{signal} = \sum_{j=1}^s b_j X_j
+$$
+
+This reduces confounding strength and makes selection easier.
+
+## DGP 3: Heavy-Tailed
+
+Covariates follow multivariate Student-$t$ with $\nu = 3$:
+
+$$
+X = Z \cdot \sqrt{\nu / \chi^2_{\nu}}
+$$
+
+Noise terms are also $t$-distributed, creating outliers and fat tails.
+
+## Simulation Design
+
+- Sample size $n$, covariates $p$, and sparsity $s$ vary by scenario
+- Correlation $\rho$ controls collinearity in $X$
+- Compare plug-in vs cross-validated penalties
+- Benchmark against OLS where feasible
+
+## Performance Metrics
+
+- Coverage: proportion of replications with $\beta_0$ inside the CI
+- Length: average CI length
+- Bias and RMSE for point estimates
+
+## CI Length by Scenario
+
+![](plots/ci_length_by_scenario.png){width=90%}
+
+## Coverage by Scenario
+
+![](plots/coverage_by_scenario.png){width=90%}
+
+## Treatment Effect Hat: Large Corr 0.5
+
+![](plots/treatment_effect_hat_distribution_large_corr_0_5.png){width=90%}
+
+## Practical Takeaways
+
+- Double LASSO targets valid inference under high dimensionality
+- Orthogonality protects against first-stage selection errors
+- Heavy tails and strong correlation stress-test coverage
+- Cross-validation can trade bias vs variance in finite samples
+
+## Thank You
+
+Questions?

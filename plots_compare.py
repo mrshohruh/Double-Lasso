@@ -38,8 +38,8 @@ def plot_metric(df: pd.DataFrame, metric: str, outdir: Path) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="Compare results between Double LASSO and OLS summaries.")
-    parser.add_argument("--lasso_dir", type=Path, default=Path("results_lasso"))
-    parser.add_argument("--ols_dir", type=Path, default=Path("resultsols"))
+    parser.add_argument("--lasso_dir", type=Path, default=Path("results"))
+    parser.add_argument("--ols_dir", type=Path, default=Path("results_ols"))
     parser.add_argument("--outdir", type=Path, default=Path("cplots"))
     args = parser.parse_args()
 
