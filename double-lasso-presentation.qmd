@@ -1,6 +1,6 @@
 ---
-title: "Double LASSO in High-Dimensional Linear Models"
-subtitle: "Confidence-Interval Performance and DGPs"
+title: "RM in Econometrics and Statistics"
+subtitle: "Evaluating the Confidence-Interval Performance of the Double LASSO Estimator in High-Dimensional Econometric Models"
 author: "Shokhrukhkhon Nishonkulov, Olimjon Umurzokov, Damir Abdulazizov"
 format:
   revealjs:
@@ -11,179 +11,141 @@ format:
     center: true
 ---
 
-## Motivation
+## Introduction and Motivation
+- High-dimensional regression: many controls, $p$ comparable to or larger than $n$
+- OLS inference breaks down: overfitting, multicollinearity, omitted-variable bias
+- Double LASSO: variable selection + valid post-selection inference
+- Key ideas: sparsity and Neyman-orthogonality for reliable CIs
+- Monte Carlo evaluation: coverage and CI length under multiple DGPs
 
-- High-dimensional regression: $p$ can be comparable to or larger than $n$
-- Naive post-selection inference is biased after model selection
-- Double LASSO uses orthogonalization to obtain valid inference
-- Goal: study finite-sample CI coverage under different DGPs
 
-## Baseline Linear Model
+## Double LASSO: Model and Estimation Procedure
 
-We observe $(Y_i, D_i, X_i)$ for $i = 1, \ldots, n$ and posit
-
+We consider the high-dimensional partially linear model:
 $$
-Y_i = \beta_0 D_i + X_i' \theta_0 + u_i
-$$
-
-where $D_i$ is the target regressor and $X_i \in \mathbb{R}^p$ are controls.
-
-## First-Stage (Treatment) Equation
-
-$$
-D_i = X_i' \gamma_0 + v_i
+Y = \alpha D + X' \beta + \varepsilon
 $$
 
-The key problem: $X_i$ is high-dimensional, so we use sparsity to recover
-the relevant controls in both equations.
-
-## LASSO Estimator
-
-For any response $Z$ and design $X$,
-
+## Step 1: LASSO for Outcome Equation
 $$
-\hat{\theta} = \arg\min_{\theta}
-\left\{
-\frac{1}{2n}\sum_{i=1}^n (Z_i - X_i' \theta)^2
- + \lambda \|\theta\|_1
-\right\}
+Y = X' \beta + u
 $$
 
-Penalty $\lambda$ is chosen either by plug-in rules or cross-validation.
-
-## Double LASSO (Double Selection)
-
-1. Run LASSO of $Y$ on $X$ to select $\hat{S}_y$
-2. Run LASSO of $D$ on $X$ to select $\hat{S}_d$
-3. Regress $Y$ on $D$ and $X_{\hat{S}_y \cup \hat{S}_d}$ by OLS
-
-The coefficient on $D$ is $\hat{\beta}_{DL}$.
-
-## Orthogonal Score (Theory)
-
-Define the orthogonal moment
-
+Selected controls from outcome:
 $$
-\psi(W_i, \beta, \eta)
-= (Y_i - X_i' \theta - \beta D_i)(D_i - X_i' \gamma)
+\hat{S}_Y = \{ j : \hat{\beta}_j \neq 0 \}
 $$
 
-With $\eta = (\theta, \gamma)$, orthogonality holds:
-
+## Step 2: LASSO for Treatment Equation
 $$
-\left.\frac{\partial}{\partial \eta}
-\mathbb{E}[\psi(W_i, \beta_0, \eta)]\right|_{\eta=\eta_0} = 0
+D = X' \gamma + v
 $$
 
-This reduces sensitivity to first-stage errors.
-
-## Approximate Sparsity
-
-Let $\theta_0$ and $\gamma_0$ be approximately sparse:
-
+Selected controls from treatment:
 $$
-\|\theta_0\|_0 = s_y, \quad \|\gamma_0\|_0 = s_d, \quad
-s_y, s_d \ll n
+\hat{S}_D = \{ j : \hat{\gamma}_j \neq 0 \}
 $$
 
-Under regularity conditions, Double LASSO yields
+## Step 3: Post-Selection OLS (Union of Controls)
 
+Union of selected controls:
 $$
-\sqrt{n}(\hat{\beta}_{DL} - \beta_0) \Rightarrow N(0, \sigma^2)
-$$
-
-## Confidence Interval
-
-Standard CI:
-
-$$
-\hat{\beta}_{DL} \pm z_{1-\alpha/2} \cdot \widehat{SE}(\hat{\beta}_{DL})
+\hat{S} = \hat{S}_Y \cup \hat{S}_D
 $$
 
-Coverage and length are evaluated by Monte Carlo simulation.
-
-## Data-Generating Processes (DGPs)
-
-All DGPs share:
-
+Post-selection OLS:
 $$
-D = \gamma_D \cdot \text{signal} + v, \quad
-Y = \beta_0 D + \gamma_Y \cdot \text{signal} + u
+Y = \alpha D + X_{\hat{S}}' \delta + \varepsilon
 $$
 
-They differ in the distribution of $X$ and the signal structure.
-
-## DGP 1: Static (Baseline)
-
-Covariates $X$ are Gaussian with optional equicorrelation:
-
+Double LASSO estimator:
 $$
-X \sim N(0, \Sigma), \quad
-\Sigma_{jk} = \rho \text{ for } j \neq k
+\hat{\alpha}_{DL}
 $$
 
-Signal is a sum of the first $s$ covariates:
+## Why Partialling-Out Works: Neyman Orthogonality
 
+Define residuals:
 $$
-\text{signal} = \sum_{j=1}^{s} X_j
-$$
-
-## DGP 2: Static Easier
-
-Gaussian covariates with equicorrelation, but approximate sparsity:
-
-$$
-b_j \propto \frac{1}{j^2}, \quad j = 1,\ldots,s
+u = Y - X' \beta,\quad v = D - X' \gamma
 $$
 
+Orthogonal score (moment condition):
 $$
-\text{signal} = \sum_{j=1}^s b_j X_j
-$$
-
-This reduces confounding strength and makes selection easier.
-
-## DGP 3: Heavy-Tailed
-
-Covariates follow multivariate Student-$t$ with $\nu = 3$:
-
-$$
-X = Z \cdot \sqrt{\nu / \chi^2_{\nu}}
+\psi(W; \alpha, \eta) = (Y - \alpha D - X' \beta)(D - X' \gamma),\quad \eta=(\beta,\gamma)
 $$
 
-Noise terms are also $t$-distributed, creating outliers and fat tails.
+## Neyman orthogonality:
+$$
+\left.\frac{\partial}{\partial \eta} \mathbb{E}\left[\psi(W; \alpha_0, \eta)\right]\right|_{\eta=\eta_0} = 0
+$$
+
+Implication:
+$$
+\mathbb{E}[u v]=0,\quad \hat{\alpha} \text{ is insensitive to small errors in } \hat{\beta},\hat{\gamma}
+$$
 
 ## Simulation Design
 
-- Sample size $n$, covariates $p$, and sparsity $s$ vary by scenario
-- Correlation $\rho$ controls collinearity in $X$
-- Compare plug-in vs cross-validated penalties
-- Benchmark against OLS where feasible
+- Sample size: $n \in \{200, 320\}$ with low-dim checks ($n=200, p=20$)
+- Number of covariates: $p \in \{20, 180, 200, 240, 384\}$
+- Sparsity: $s=5$ relevant controls 
+- True treatment effect: $\alpha=2.0$
+- Correlation in $X$: equicorrelated $\rho \in \{0.0, 0.2, 0.5\}$
 
-## Performance Metrics
 
-- Coverage: proportion of replications with $\beta_0$ inside the CI
-- Length: average CI length
-- Bias and RMSE for point estimates
+## DGP Variants
 
-## CI Length by Scenario
+- static: Gaussian $X$ with optional equicorrelation, signal from first $s$ covariates
+- static\_easier: Gaussian $X$ with coefficient decay $b_j \propto 1/j^2$ (approximate sparsity)
+- heavy\_tail: Student-$t_3$ covariates and noise; sparse coefficients $b_j \propto 1/\sqrt{j}$
+- Outcome/treatment form: $D=\gamma_D\,\text{signal}+v$, $Y=\alpha D+\gamma_Y\,\text{signal}+u$
 
-![](plots/ci_length_by_scenario.png){width=90%}
+## Estimator: Double LASSO (Plug-in vs CV Alpha)
 
-## Coverage by Scenario
+- Two LASSO steps: outcome on $X$, treatment on $X$; use residuals in final OLS
+- Plug-in alpha: $\alpha = c\,\hat{\sigma}\sqrt{2\log(2p/a)/n}$ (Chernozhukov et al.)
+- CV alpha: 10-fold LassoCV, select $\alpha$ separately for outcome and treatment
+- Same final step: OLS of residualized $Y$ on residualized $D$ with HC3 SEs
 
-![](plots/coverage_by_scenario.png){width=90%}
+## Results
 
-## Treatment Effect Hat: Large Corr 0.5
+## Coverage
 
-![](plots/treatment_effect_hat_distribution_large_corr_0_5.png){width=90%}
+![](cplots/coverage.png){width=100%}
 
-## Practical Takeaways
+## Average CI Length
 
-- Double LASSO targets valid inference under high dimensionality
-- Orthogonality protects against first-stage selection errors
-- Heavy tails and strong correlation stress-test coverage
-- Cross-validation can trade bias vs variance in finite samples
+![](cplots/ci_length_mean.png){width=100%}
 
-## Thank You
+## RMSE
+
+![](cplots/rmse.png){width=100%}
+
+## Coverage Probability
+
+![](plots/coverage_by_scenario.png){width=100%}
+
+## Average Confidence-Interval Length
+
+![](plots/ci_length_by_scenario.png){width=100%}
+
+## Selected Outcome Controls
+
+![](plots/n_selected_outcome_controls_line.png){width=100%}
+
+## Selected Treatment Controls
+
+![](plots/n_selected_treatment_controls_line.png){width=100%}
+
+## RMSE
+
+![](plots/rmse_by_scenario.png){width=100%}
+
+## Treatment Effect Distribution (Large, $\rho=0.5$)
+
+![](plots/treatment_effect_hat_distribution_large_corr_0_5.png){width=100%}
+
+## Thank you for your attention
 
 Questions?

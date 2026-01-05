@@ -10,7 +10,7 @@
   <meta name="generator" content="quarto-1.8.26">
 
   <meta name="author" content="Shokhrukhkhon Nishonkulov, Olimjon Umurzokov, Damir Abdulazizov">
-  <title>Double LASSO in High-Dimensional Linear Models</title>
+  <title>RM in Econometrics and Statistics</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -127,8 +127,8 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">Double LASSO in High-Dimensional Linear Models</h1>
-  <p class="subtitle">Confidence-Interval Performance and DGPs</p>
+  <h1 class="title">RM in Econometrics and Statistics</h1>
+  <p class="subtitle">Evaluating the Confidence-Interval Performance of the Double LASSO Estimator in High-Dimensional Econometric Models</p>
 
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
@@ -139,165 +139,139 @@ Shokhrukhkhon Nishonkulov, Olimjon Umurzokov, Damir Abdulazizov
 </div>
 
 </section>
-<section id="motivation" class="slide level2 center">
-<h2>Motivation</h2>
+<section id="introduction-and-motivation" class="slide level2 center">
+<h2>Introduction and Motivation</h2>
 <ul>
-<li class="fragment">High-dimensional regression: <span class="math inline">\(p\)</span> can be comparable to or larger than <span class="math inline">\(n\)</span></li>
-<li class="fragment">Naive post-selection inference is biased after model selection</li>
-<li class="fragment">Double LASSO uses orthogonalization to obtain valid inference</li>
-<li class="fragment">Goal: study finite-sample CI coverage under different DGPs</li>
+<li class="fragment">High-dimensional regression: many controls, <span class="math inline">\(p\)</span> comparable to or larger than <span class="math inline">\(n\)</span></li>
+<li class="fragment">OLS inference breaks down: overfitting, multicollinearity, omitted-variable bias</li>
+<li class="fragment">Double LASSO: variable selection + valid post-selection inference</li>
+<li class="fragment">Key ideas: sparsity and Neyman-orthogonality for reliable CIs</li>
+<li class="fragment">Monte Carlo evaluation: coverage and CI length under multiple DGPs</li>
 </ul>
 </section>
-<section id="baseline-linear-model" class="slide level2 center">
-<h2>Baseline Linear Model</h2>
-<p>We observe <span class="math inline">\((Y_i, D_i, X_i)\)</span> for <span class="math inline">\(i = 1, \ldots, n\)</span> and posit</p>
-<p><span class="math display">\[
-Y_i = \beta_0 D_i + X_i' \theta_0 + u_i
-\]</span></p>
-<p>where <span class="math inline">\(D_i\)</span> is the target regressor and <span class="math inline">\(X_i \in \mathbb{R}^p\)</span> are controls.</p>
-</section>
-<section id="first-stage-treatment-equation" class="slide level2 center">
-<h2>First-Stage (Treatment) Equation</h2>
-<p><span class="math display">\[
-D_i = X_i' \gamma_0 + v_i
-\]</span></p>
-<p>The key problem: <span class="math inline">\(X_i\)</span> is high-dimensional, so we use sparsity to recover the relevant controls in both equations.</p>
-</section>
-<section id="lasso-estimator" class="slide level2 center">
-<h2>LASSO Estimator</h2>
-<p>For any response <span class="math inline">\(Z\)</span> and design <span class="math inline">\(X\)</span>,</p>
-<p><span class="math display">\[
-\hat{\theta} = \arg\min_{\theta}
-\left\{
-\frac{1}{2n}\sum_{i=1}^n (Z_i - X_i' \theta)^2
-+ \lambda \|\theta\|_1
-\right\}
-\]</span></p>
-<p>Penalty <span class="math inline">\(\lambda\)</span> is chosen either by plug-in rules or cross-validation.</p>
-</section>
-<section id="double-lasso-double-selection" class="slide level2 center">
-<h2>Double LASSO (Double Selection)</h2>
-<ol type="1">
-<li class="fragment">Run LASSO of <span class="math inline">\(Y\)</span> on <span class="math inline">\(X\)</span> to select <span class="math inline">\(\hat{S}_y\)</span></li>
-<li class="fragment">Run LASSO of <span class="math inline">\(D\)</span> on <span class="math inline">\(X\)</span> to select <span class="math inline">\(\hat{S}_d\)</span></li>
-<li class="fragment">Regress <span class="math inline">\(Y\)</span> on <span class="math inline">\(D\)</span> and <span class="math inline">\(X_{\hat{S}_y \cup \hat{S}_d}\)</span> by OLS</li>
-</ol>
-<p>The coefficient on <span class="math inline">\(D\)</span> is <span class="math inline">\(\hat{\beta}_{DL}\)</span>.</p>
-</section>
-<section id="orthogonal-score-theory" class="slide level2 center">
-<h2>Orthogonal Score (Theory)</h2>
-<p>Define the orthogonal moment</p>
-<p><span class="math display">\[
-\psi(W_i, \beta, \eta)
-= (Y_i - X_i' \theta - \beta D_i)(D_i - X_i' \gamma)
-\]</span></p>
-<p>With <span class="math inline">\(\eta = (\theta, \gamma)\)</span>, orthogonality holds:</p>
-<p><span class="math display">\[
-\left.\frac{\partial}{\partial \eta}
-\mathbb{E}[\psi(W_i, \beta_0, \eta)]\right|_{\eta=\eta_0} = 0
-\]</span></p>
-<p>This reduces sensitivity to first-stage errors.</p>
-</section>
-<section id="approximate-sparsity" class="slide level2 center">
-<h2>Approximate Sparsity</h2>
-<p>Let <span class="math inline">\(\theta_0\)</span> and <span class="math inline">\(\gamma_0\)</span> be approximately sparse:</p>
-<p><span class="math display">\[
-\|\theta_0\|_0 = s_y, \quad \|\gamma_0\|_0 = s_d, \quad
-s_y, s_d \ll n
-\]</span></p>
-<p>Under regularity conditions, Double LASSO yields</p>
-<p><span class="math display">\[
-\sqrt{n}(\hat{\beta}_{DL} - \beta_0) \Rightarrow N(0, \sigma^2)
+<section id="double-lasso-model-and-estimation-procedure" class="slide level2 center">
+<h2>Double LASSO: Model and Estimation Procedure</h2>
+<p>We consider the high-dimensional partially linear model: <span class="math display">\[
+Y = \alpha D + X' \beta + \varepsilon
 \]</span></p>
 </section>
-<section id="confidence-interval" class="slide level2 center">
-<h2>Confidence Interval</h2>
-<p>Standard CI:</p>
+<section id="step-1-lasso-for-outcome-equation" class="slide level2 center">
+<h2>Step 1: LASSO for Outcome Equation</h2>
 <p><span class="math display">\[
-\hat{\beta}_{DL} \pm z_{1-\alpha/2} \cdot \widehat{SE}(\hat{\beta}_{DL})
+Y = X' \beta + u
 \]</span></p>
-<p>Coverage and length are evaluated by Monte Carlo simulation.</p>
-</section>
-<section id="data-generating-processes-dgps" class="slide level2 center">
-<h2>Data-Generating Processes (DGPs)</h2>
-<p>All DGPs share:</p>
-<p><span class="math display">\[
-D = \gamma_D \cdot \text{signal} + v, \quad
-Y = \beta_0 D + \gamma_Y \cdot \text{signal} + u
-\]</span></p>
-<p>They differ in the distribution of <span class="math inline">\(X\)</span> and the signal structure.</p>
-</section>
-<section id="dgp-1-static-baseline" class="slide level2 center">
-<h2>DGP 1: Static (Baseline)</h2>
-<p>Covariates <span class="math inline">\(X\)</span> are Gaussian with optional equicorrelation:</p>
-<p><span class="math display">\[
-X \sim N(0, \Sigma), \quad
-\Sigma_{jk} = \rho \text{ for } j \neq k
-\]</span></p>
-<p>Signal is a sum of the first <span class="math inline">\(s\)</span> covariates:</p>
-<p><span class="math display">\[
-\text{signal} = \sum_{j=1}^{s} X_j
+<p>Selected controls from outcome: <span class="math display">\[
+\hat{S}_Y = \{ j : \hat{\beta}_j \neq 0 \}
 \]</span></p>
 </section>
-<section id="dgp-2-static-easier" class="slide level2 center">
-<h2>DGP 2: Static Easier</h2>
-<p>Gaussian covariates with equicorrelation, but approximate sparsity:</p>
+<section id="step-2-lasso-for-treatment-equation" class="slide level2 center">
+<h2>Step 2: LASSO for Treatment Equation</h2>
 <p><span class="math display">\[
-b_j \propto \frac{1}{j^2}, \quad j = 1,\ldots,s
+D = X' \gamma + v
 \]</span></p>
-<p><span class="math display">\[
-\text{signal} = \sum_{j=1}^s b_j X_j
+<p>Selected controls from treatment: <span class="math display">\[
+\hat{S}_D = \{ j : \hat{\gamma}_j \neq 0 \}
 \]</span></p>
-<p>This reduces confounding strength and makes selection easier.</p>
 </section>
-<section id="dgp-3-heavy-tailed" class="slide level2 center">
-<h2>DGP 3: Heavy-Tailed</h2>
-<p>Covariates follow multivariate Student-<span class="math inline">\(t\)</span> with <span class="math inline">\(\nu = 3\)</span>:</p>
-<p><span class="math display">\[
-X = Z \cdot \sqrt{\nu / \chi^2_{\nu}}
+<section id="step-3-post-selection-ols-union-of-controls" class="slide level2 center">
+<h2>Step 3: Post-Selection OLS (Union of Controls)</h2>
+<p>Union of selected controls: <span class="math display">\[
+\hat{S} = \hat{S}_Y \cup \hat{S}_D
 \]</span></p>
-<p>Noise terms are also <span class="math inline">\(t\)</span>-distributed, creating outliers and fat tails.</p>
+<p>Post-selection OLS: <span class="math display">\[
+Y = \alpha D + X_{\hat{S}}' \delta + \varepsilon
+\]</span></p>
+<p>Double LASSO estimator: <span class="math display">\[
+\hat{\alpha}_{DL}
+\]</span></p>
+</section>
+<section id="why-partialling-out-works-neyman-orthogonality" class="slide level2 center">
+<h2>Why Partialling-Out Works: Neyman Orthogonality</h2>
+<p>Define residuals: <span class="math display">\[
+u = Y - X' \beta,\quad v = D - X' \gamma
+\]</span></p>
+<p>Orthogonal score (moment condition): <span class="math display">\[
+\psi(W; \alpha, \eta) = (Y - \alpha D - X' \beta)(D - X' \gamma),\quad \eta=(\beta,\gamma)
+\]</span></p>
+</section>
+<section id="neyman-orthogonality" class="slide level2 center">
+<h2>Neyman orthogonality:</h2>
+<p><span class="math display">\[
+\left.\frac{\partial}{\partial \eta} \mathbb{E}\left[\psi(W; \alpha_0, \eta)\right]\right|_{\eta=\eta_0} = 0
+\]</span></p>
+<p>Implication: <span class="math display">\[
+\mathbb{E}[u v]=0,\quad \hat{\alpha} \text{ is insensitive to small errors in } \hat{\beta},\hat{\gamma}
+\]</span></p>
 </section>
 <section id="simulation-design" class="slide level2 center">
 <h2>Simulation Design</h2>
 <ul>
-<li class="fragment">Sample size <span class="math inline">\(n\)</span>, covariates <span class="math inline">\(p\)</span>, and sparsity <span class="math inline">\(s\)</span> vary by scenario</li>
-<li class="fragment">Correlation <span class="math inline">\(\rho\)</span> controls collinearity in <span class="math inline">\(X\)</span></li>
-<li class="fragment">Compare plug-in vs cross-validated penalties</li>
-<li class="fragment">Benchmark against OLS where feasible</li>
+<li class="fragment">Sample size: <span class="math inline">\(n \in \{200, 320\}\)</span> with low-dim checks (<span class="math inline">\(n=200, p=20\)</span>)</li>
+<li class="fragment">Number of covariates: <span class="math inline">\(p \in \{20, 180, 200, 240, 384\}\)</span></li>
+<li class="fragment">Sparsity: <span class="math inline">\(s=5\)</span> relevant controls</li>
+<li class="fragment">True treatment effect: <span class="math inline">\(\alpha=2.0\)</span></li>
+<li class="fragment">Correlation in <span class="math inline">\(X\)</span>: equicorrelated <span class="math inline">\(\rho \in \{0.0, 0.2, 0.5\}\)</span></li>
 </ul>
 </section>
-<section id="performance-metrics" class="slide level2 center">
-<h2>Performance Metrics</h2>
+<section id="dgp-variants" class="slide level2 center">
+<h2>DGP Variants</h2>
 <ul>
-<li class="fragment">Coverage: proportion of replications with <span class="math inline">\(\beta_0\)</span> inside the CI</li>
-<li class="fragment">Length: average CI length</li>
-<li class="fragment">Bias and RMSE for point estimates</li>
+<li class="fragment">static: Gaussian <span class="math inline">\(X\)</span> with optional equicorrelation, signal from first <span class="math inline">\(s\)</span> covariates</li>
+<li class="fragment">static_easier: Gaussian <span class="math inline">\(X\)</span> with coefficient decay <span class="math inline">\(b_j \propto 1/j^2\)</span> (approximate sparsity)</li>
+<li class="fragment">heavy_tail: Student-<span class="math inline">\(t_3\)</span> covariates and noise; sparse coefficients <span class="math inline">\(b_j \propto 1/\sqrt{j}\)</span></li>
+<li class="fragment">Outcome/treatment form: <span class="math inline">\(D=\gamma_D\,\text{signal}+v\)</span>, <span class="math inline">\(Y=\alpha D+\gamma_Y\,\text{signal}+u\)</span></li>
 </ul>
 </section>
-<section id="ci-length-by-scenario" class="slide level2 center">
-<h2>CI Length by Scenario</h2>
-
-<img data-src="plots/ci_length_by_scenario.png" style="width:90.0%" class="r-stretch"></section>
-<section id="coverage-by-scenario" class="slide level2 center">
-<h2>Coverage by Scenario</h2>
-
-<img data-src="plots/coverage_by_scenario.png" style="width:90.0%" class="r-stretch"></section>
-<section id="treatment-effect-hat-large-corr-0.5" class="slide level2 center">
-<h2>Treatment Effect Hat: Large Corr 0.5</h2>
-
-<img data-src="plots/treatment_effect_hat_distribution_large_corr_0_5.png" style="width:90.0%" class="r-stretch"></section>
-<section id="practical-takeaways" class="slide level2 center">
-<h2>Practical Takeaways</h2>
+<section id="estimator-double-lasso-plug-in-vs-cv-alpha" class="slide level2 center">
+<h2>Estimator: Double LASSO (Plug-in vs CV Alpha)</h2>
 <ul>
-<li class="fragment">Double LASSO targets valid inference under high dimensionality</li>
-<li class="fragment">Orthogonality protects against first-stage selection errors</li>
-<li class="fragment">Heavy tails and strong correlation stress-test coverage</li>
-<li class="fragment">Cross-validation can trade bias vs variance in finite samples</li>
+<li class="fragment">Two LASSO steps: outcome on <span class="math inline">\(X\)</span>, treatment on <span class="math inline">\(X\)</span>; use residuals in final OLS</li>
+<li class="fragment">Plug-in alpha: <span class="math inline">\(\alpha = c\,\hat{\sigma}\sqrt{2\log(2p/a)/n}\)</span> (Chernozhukov et al.)</li>
+<li class="fragment">CV alpha: 10-fold LassoCV, select <span class="math inline">\(\alpha\)</span> separately for outcome and treatment</li>
+<li class="fragment">Same final step: OLS of residualized <span class="math inline">\(Y\)</span> on residualized <span class="math inline">\(D\)</span> with HC3 SEs</li>
 </ul>
 </section>
-<section id="thank-you" class="slide level2 center">
-<h2>Thank You</h2>
+<section id="results" class="slide level2 center">
+<h2>Results</h2>
+</section>
+<section id="coverage" class="slide level2 center">
+<h2>Coverage</h2>
+
+<img data-src="cplots/coverage.png" style="width:100.0%" class="r-stretch"></section>
+<section id="average-ci-length" class="slide level2 center">
+<h2>Average CI Length</h2>
+
+<img data-src="cplots/ci_length_mean.png" style="width:100.0%" class="r-stretch"></section>
+<section id="rmse" class="slide level2 center">
+<h2>RMSE</h2>
+
+<img data-src="cplots/rmse.png" style="width:100.0%" class="r-stretch"></section>
+<section id="coverage-probability" class="slide level2 center">
+<h2>Coverage Probability</h2>
+
+<img data-src="plots/coverage_by_scenario.png" style="width:100.0%" class="r-stretch"></section>
+<section id="average-confidence-interval-length" class="slide level2 center">
+<h2>Average Confidence-Interval Length</h2>
+
+<img data-src="plots/ci_length_by_scenario.png" style="width:100.0%" class="r-stretch"></section>
+<section id="selected-outcome-controls" class="slide level2 center">
+<h2>Selected Outcome Controls</h2>
+
+<img data-src="plots/n_selected_outcome_controls_line.png" style="width:100.0%" class="r-stretch"></section>
+<section id="selected-treatment-controls" class="slide level2 center">
+<h2>Selected Treatment Controls</h2>
+
+<img data-src="plots/n_selected_treatment_controls_line.png" style="width:100.0%" class="r-stretch"></section>
+<section id="rmse-1" class="slide level2 center">
+<h2>RMSE</h2>
+
+<img data-src="plots/rmse_by_scenario.png" style="width:100.0%" class="r-stretch"></section>
+<section id="treatment-effect-distribution-large-rho0.5" class="slide level2 center">
+<h2>Treatment Effect Distribution (Large, <span class="math inline">\(\rho=0.5\)</span>)</h2>
+
+<img data-src="plots/treatment_effect_hat_distribution_large_corr_0_5.png" style="width:100.0%" class="r-stretch"></section>
+<section id="thank-you-for-your-attention" class="slide level2 center">
+<h2>Thank you for your attention</h2>
 <p>Questions?</p>
 
 </section>

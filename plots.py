@@ -94,25 +94,12 @@ def _style_ax(ax: plt.Axes) -> None:
 
 # Scenario metadata based on scenarios.py
 SCENARIO_PARAMS = {
-    "small_corr_0_2": dict(n_samples=120, n_covariates=150, covariate_correlation=0.2),
-    "small_corr_0_0": dict(n_samples=120, n_covariates=150, covariate_correlation=0.0),
-    "small_corr_0_5": dict(n_samples=120, n_covariates=150, covariate_correlation=0.5),
-    "medium_corr_0_2": dict(n_samples=200, n_covariates=240, covariate_correlation=0.2),
     "medium_corr_0_0": dict(n_samples=200, n_covariates=240, covariate_correlation=0.0),
+    "medium_corr_0_2": dict(n_samples=200, n_covariates=240, covariate_correlation=0.2),
     "medium_corr_0_5": dict(n_samples=200, n_covariates=240, covariate_correlation=0.5),
-    "large_corr_0_2": dict(n_samples=320, n_covariates=384, covariate_correlation=0.2),
     "large_corr_0_0": dict(n_samples=320, n_covariates=384, covariate_correlation=0.0),
+    "large_corr_0_2": dict(n_samples=320, n_covariates=384, covariate_correlation=0.2),
     "large_corr_0_5": dict(n_samples=320, n_covariates=384, covariate_correlation=0.5),
-    # Legacy scenario names for backward compatibility with older CSVs
-    "small": dict(n_samples=120, n_covariates=150, covariate_correlation=0.2),
-    "small_rho_0": dict(n_samples=120, n_covariates=150, covariate_correlation=0.0),
-    "small_rho_0_5": dict(n_samples=120, n_covariates=150, covariate_correlation=0.5),
-    "medium": dict(n_samples=200, n_covariates=240, covariate_correlation=0.2),
-    "medium_rho_0": dict(n_samples=200, n_covariates=240, covariate_correlation=0.0),
-    "medium_rho_0_5": dict(n_samples=200, n_covariates=240, covariate_correlation=0.5),
-    "large": dict(n_samples=320, n_covariates=384, covariate_correlation=0.2),
-    "large_rho_0": dict(n_samples=320, n_covariates=384, covariate_correlation=0.0),
-    "large_rho_0_5": dict(n_samples=320, n_covariates=384, covariate_correlation=0.5),
 }
 
 SCENARIO_ORDER = [
@@ -122,22 +109,6 @@ SCENARIO_ORDER = [
     "medium_corr_0_0",
     "medium_corr_0_2",
     "medium_corr_0_5",
-    "small_corr_0_0",
-    "small_corr_0_2",
-    "small_corr_0_5",
-    "classical_low_dim",
-    "near_p_equals_n",
-    "p_equals_n",
-    # Legacy aliases
-    "large",
-    "large_rho_0",
-    "large_rho_0_5",
-    "medium",
-    "medium_rho_0",
-    "medium_rho_0_5",
-    "small",
-    "small_rho_0",
-    "small_rho_0_5",
 ]
 
 
